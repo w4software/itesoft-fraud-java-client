@@ -132,26 +132,29 @@ public class FraudService
       HttpPost httpPost = new HttpPost(BASE_URL + "/checkdocument/" + checkAlgorithm.toUpperCase());
       httpPost.addHeader(SUBSCRIPTION_KEY_HEADER, _subscriptionKey);
 
-      Map<String, Object> parameters = new HashMap<>(metadata);
+      Map<String, Object> fixedMetadata = new HashMap<>(metadata);
       Map<String, File> additionalParts = new HashMap<>();
 
-      for(Entry<String, Object> entry : parameters.entrySet())
+      int additionalIndex = 0;
+      for(Entry<String, Object> entry : fixedMetadata.entrySet())
       {
         if (entry.getValue() instanceof File)
         {
           File file = (File) entry.getValue();
-          String name = UUID.randomUUID().toString() + "-" + file.getName();
+          String name = "file" + additionalIndex++;
           entry.setValue(name);
           additionalParts.put(name, file);
         }
       }
 
+      Map<String, Object> parameters = new HashMap<>();
+      parameters.put("metadata", fixedMetadata);
       MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
       entityBuilder.addPart("Parameters", new StringBody(new JSONObject(parameters).toString(), ContentType.APPLICATION_JSON));
 
       for(Entry<String, File> additionalPart : additionalParts.entrySet())
       {
-        entityBuilder.addPart(additionalPart.getKey(), new FileBody(additionalPart.getValue()));
+        entityBuilder.addPart(additionalPart.getKey(), new FileBody(additionalPart.getValue(), ContentType.create("image/jpeg")));
       }
 
       httpPost.setEntity(entityBuilder.build());
